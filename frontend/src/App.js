@@ -1,10 +1,43 @@
-import { lazy, Suspense } from "react";
+import { Component, lazy, Suspense } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { LangProvider } from "@/lib/i18n";
 import { AuthShell, RequireMember, RequireAdmin, OwnerOnly } from "@/lib/auth";
 import { PageLoader } from "@/components/Loading";
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error("TokMenu ErrorBoundary caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen flex-col items-center justify-center p-6 text-center bg-background">
+          <div className="max-w-md rounded-2xl border bg-card p-8 shadow-xl">
+            <h2 className="font-display text-2xl font-bold">Something went wrong</h2>
+            <p className="mt-2 text-sm text-muted-foreground">The page encountered an unexpected issue. Please reload to try again.</p>
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-6 inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground shadow hover:opacity-90"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
@@ -40,9 +73,10 @@ function App() {
   return (
     <div className="App">
       <LangProvider>
-        <BrowserRouter>
-          <Suspense fallback={<PageLoader />}>
-            <Routes>
+        <ErrorBoundary>
+          <BrowserRouter>
+            <Suspense fallback={<PageLoader />}>
+              <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/menu/:slug" element={<MenuPage />} />
@@ -78,6 +112,7 @@ function App() {
           </Suspense>
           <Toaster position="top-center" richColors closeButton />
         </BrowserRouter>
+        </ErrorBoundary>
       </LangProvider>
     </div>
   );

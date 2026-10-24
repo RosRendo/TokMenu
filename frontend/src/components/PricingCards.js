@@ -6,35 +6,90 @@ import { api } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
+export const DEFAULT_PLANS = [
+  {
+    key: "trial",
+    name: "Free Trial",
+    name_km: "សាកល្បងឥតគិតថ្លៃ",
+    price_usd: 0,
+    max_items: 25,
+    max_tables: 5,
+    max_staff: 0,
+    history_days: 2,
+    reports: false,
+    advanced_reports: false,
+    custom_branding: false,
+    priority_support: false,
+  },
+  {
+    key: "starter",
+    name: "Starter",
+    name_km: "ចាប់ផ្ដើម",
+    price_usd: 10,
+    max_items: null,
+    max_tables: 50,
+    max_staff: 2,
+    history_days: null,
+    reports: true,
+    advanced_reports: false,
+    custom_branding: false,
+    priority_support: false,
+  },
+  {
+    key: "pro",
+    name: "Pro",
+    name_km: "Pro",
+    price_usd: 20,
+    max_items: null,
+    max_tables: 200,
+    max_staff: 10,
+    history_days: null,
+    reports: true,
+    advanced_reports: true,
+    custom_branding: true,
+    priority_support: true,
+  },
+];
+
 export function usePlans() {
-  const [plans, setPlans] = useState([]);
+  const [plans, setPlans] = useState(DEFAULT_PLANS);
   useEffect(() => {
-    api.get("/public/plans").then(({ data }) => setPlans(data.plans)).catch(() => setPlans([]));
+    api
+      .get("/public/plans")
+      .then(({ data }) => {
+        if (data && Array.isArray(data.plans) && data.plans.length > 0) {
+          setPlans(data.plans);
+        }
+      })
+      .catch(() => {
+        setPlans(DEFAULT_PLANS);
+      });
   }, []);
-  return plans;
+  return plans || DEFAULT_PLANS;
 }
 
 export function planFeatures(plan, tr) {
-  const n = (v, unlimited) => (v === null ? unlimited : v);
+  if (!plan) return [];
+  const n = (v, unlimited) => (v === null || v === undefined ? unlimited : v);
   return [
     [true, tr(`${n(plan.max_items, "Unlimited")} menu items`, `មុខម្ហូប ${n(plan.max_items, "មិនកំណត់")}`)],
-    [true, tr(`${plan.max_tables} table QR codes`, `កូដ QR តុ ${plan.max_tables}`)],
+    [true, tr(`${plan.max_tables ?? 0} table QR codes`, `កូដ QR តុ ${plan.max_tables ?? 0}`)],
     [plan.max_staff > 0, plan.max_staff > 0 ? tr(`${plan.max_staff} staff accounts`, `គណនីបុគ្គលិក ${plan.max_staff}`) : tr("Owner account only", "គណនីម្ចាស់តែប៉ុណ្ណោះ")],
     [true, tr("Live order board", "ផ្ទាំងកុម្ម៉ង់ផ្ទាល់")],
-    [plan.history_days === null, plan.history_days === null ? tr("Full order history", "ប្រវត្តិកុម្ម៉ង់ពេញលេញ") : tr(`Last ${plan.history_days} days of history`, `ប្រវត្តិ ${plan.history_days} ថ្ងៃចុងក្រោយ`)],
-    [plan.reports, plan.advanced_reports ? tr("Advanced reports + CSV export", "របាយការណ៍កម្រិតខ្ពស់ + CSV") : tr("Basic sales reports", "របាយការណ៍លក់មូលដ្ឋាន")],
-    [plan.custom_branding, tr("Brand accent colour", "ពណ៌ម៉ាកយីហោ")],
-    [plan.priority_support, tr("Priority support", "ជំនួយអាទិភាព")],
+    [plan.history_days === null || plan.history_days === undefined, (plan.history_days === null || plan.history_days === undefined) ? tr("Full order history", "ប្រវត្តិកុម្ម៉ង់ពេញលេញ") : tr(`Last ${plan.history_days} days of history`, `ប្រវត្តិ ${plan.history_days} ថ្ងៃចុងក្រោយ`)],
+    [!!plan.reports, plan.advanced_reports ? tr("Advanced reports + CSV export", "របាយការណ៍កម្រិតខ្ពស់ + CSV") : tr("Basic sales reports", "របាយការណ៍លក់មូលដ្ឋាន")],
+    [!!plan.custom_branding, tr("Brand accent colour", "ពណ៌ម៉ាកយីហោ")],
+    [!!plan.priority_support, tr("Priority support", "ជំនួយអាទិភាព")],
   ];
 }
 
 export function PricingCards({ ctaTo = "/register", compact = false }) {
   const { tr, loc } = useI18n();
-  const plans = usePlans();
+  const plans = usePlans() || DEFAULT_PLANS;
   return (
     <div>
       <div className="grid gap-4 md:grid-cols-3" data-testid="pricing-cards">
-        {plans.map((p) => {
+        {(plans || []).map((p) => {
           const highlight = p.key === "starter";
           return (
             <div key={p.key} data-testid={`pricing-card-${p.key}`}

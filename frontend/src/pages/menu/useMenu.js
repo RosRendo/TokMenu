@@ -8,8 +8,16 @@ export function useMenu(slug) {
   const load = useCallback(async () => {
     try {
       const { data } = await api.get(`/public/menu/${encodeURIComponent(slug)}`);
-      setState({ loading: false, data, error: null });
-      return data;
+      if (data && Array.isArray(data.categories) && Array.isArray(data.items)) {
+        setState({ loading: false, data, error: null });
+        return data;
+      }
+      if (slug === "demo") {
+        setState({ loading: false, data: MOCK_DEMO_MENU, error: null });
+        return MOCK_DEMO_MENU;
+      }
+      setState({ loading: false, data: null, error: "NOT_FOUND" });
+      return null;
     } catch (e) {
       if (slug === "demo") {
         setState({ loading: false, data: MOCK_DEMO_MENU, error: null });

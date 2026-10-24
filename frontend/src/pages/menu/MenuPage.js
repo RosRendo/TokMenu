@@ -150,7 +150,7 @@ export default function MenuPage() {
       });
   }, [slug, token]);
 
-  const categoryIds = useMemo(() => (data?.categories || []).filter((c) => data.items.some((i) => i.category_id === c.id)).map((c) => c.id), [data]);
+  const categoryIds = useMemo(() => (data?.categories || []).filter((c) => (data?.items || []).some((i) => i.category_id === c.id)).map((c) => c.id), [data]);
   const active = useScrollSpy(categoryIds) || categoryIds[0];
   const qtyByItem = useMemo(() => cart.lines.reduce((m, l) => ({ ...m, [l.item_id]: (m[l.item_id] || 0) + l.quantity }), {}), [cart.lines]);
   const myOrders = useMemo(() => getMyOrders(slug).filter((o) => Date.now() - o.at < 12 * 3600 * 1000), [slug]);
@@ -210,7 +210,7 @@ export default function MenuPage() {
         </section>
       ) : (
         <>
-          <div className="mt-3"><CategoryTabs categories={data.categories.filter((c) => categoryIds.includes(c.id))} active={active} /></div>
+          <div className="mt-3"><CategoryTabs categories={(data?.categories || []).filter((c) => categoryIds.includes(c.id))} active={active} /></div>
           {featured.length > 0 && (
             <section className="pt-5" data-testid="menu-featured">
               <h2 className="px-4 font-display text-base font-semibold">{tr("Popular here", "ពេញនិយម")}</h2>
@@ -219,11 +219,11 @@ export default function MenuPage() {
               </div>
             </section>
           )}
-          {data.categories.filter((c) => categoryIds.includes(c.id)).map((c) => (
+          {(data?.categories || []).filter((c) => categoryIds.includes(c.id)).map((c) => (
             <section key={c.id} id={`cat-${c.id}`} className="scroll-mt-16 px-4 pt-6" data-testid={`menu-section-${c.id}`}>
               <h2 className="font-display text-lg font-bold">{loc(c)}</h2>
               <div className="divide-y">
-                {data.items.filter((i) => i.category_id === c.id).map((item) => <ItemRow key={item.id} item={item} inCart={qtyByItem[item.id]} {...rowProps} />)}
+                {(data?.items || []).filter((i) => i.category_id === c.id).map((item) => <ItemRow key={item.id} item={item} inCart={qtyByItem[item.id]} {...rowProps} />)}
               </div>
             </section>
           ))}

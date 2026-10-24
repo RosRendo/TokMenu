@@ -15,17 +15,22 @@ export function SampleMenu() {
 
   useEffect(() => {
     api.get("/public/menu/demo").then(({ data }) => {
-      setMenu(data);
-      setCat(data.categories?.[0]?.id || null);
+      if (data && Array.isArray(data.categories) && Array.isArray(data.items)) {
+        setMenu(data);
+        setCat(data.categories[0]?.id || null);
+      } else {
+        setMenu(MOCK_DEMO_MENU);
+        setCat(MOCK_DEMO_MENU.categories?.[0]?.id || null);
+      }
     }).catch(() => {
       setMenu(MOCK_DEMO_MENU);
       setCat(MOCK_DEMO_MENU.categories?.[0]?.id || null);
     });
   }, []);
 
-  const items = useMemo(() => (menu ? menu.items.filter((i) => i.category_id === cat) : []), [menu, cat]);
+  const items = useMemo(() => (menu?.items ? menu.items.filter((i) => i.category_id === cat) : []), [menu, cat]);
   const count = Object.values(picked).reduce((a, b) => a + b, 0);
-  const total = menu ? menu.items.reduce((sum, i) => sum + (picked[i.id] || 0) * i.price, 0) : 0;
+  const total = menu?.items ? menu.items.reduce((sum, i) => sum + (picked[i.id] || 0) * i.price, 0) : 0;
 
   return (
     <div className="relative mx-auto w-[300px] sm:w-[330px]" data-testid="sample-menu">
@@ -36,15 +41,15 @@ export function SampleMenu() {
           {menu && (
             <>
               <div className="relative h-28 bg-secondary">
-                {menu.restaurant.cover_url && <img src={imgUrl(menu.restaurant.cover_url)} alt="" className="h-full w-full object-cover" loading="lazy" />}
+                {menu.restaurant?.cover_url && <img src={imgUrl(menu.restaurant.cover_url)} alt="" className="h-full w-full object-cover" loading="lazy" />}
                 <span className="absolute left-3 top-3 rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">Demo</span>
               </div>
               <div className="px-4 pt-3">
-                <p className="font-display text-lg font-bold">{loc(menu.restaurant)}</p>
+                <p className="font-display text-lg font-bold">{loc(menu.restaurant || {})}</p>
                 <p className="text-[11px] text-muted-foreground">{tr("Sample content · prices are examples", "ទិន្នន័យគំរូ · តម្លៃជាឧទាហរណ៍")}</p>
               </div>
               <div className="no-scrollbar sticky top-0 z-10 mt-2 flex gap-1.5 overflow-x-auto border-b bg-background px-4 py-2">
-                {menu.categories.map((c) => (
+                {(menu.categories || []).map((c) => (
                   <button key={c.id} type="button" onClick={() => setCat(c.id)} data-testid={`sample-menu-cat-${c.id}`}
                     className={cn("shrink-0 rounded-full border px-3 py-1 text-xs font-medium", cat === c.id ? "border-foreground bg-foreground text-background" : "bg-card")}>
                     {loc(c)}
@@ -52,12 +57,12 @@ export function SampleMenu() {
                 ))}
               </div>
               <ul className="divide-y px-4 pb-20">
-                {items.map((i) => (
+                {(items || []).map((i) => (
                   <li key={i.id} className={cn("flex gap-3 py-3", !i.available && "opacity-50")}>
                     <div className="min-w-0 flex-1">
                       <p className="font-display text-sm font-semibold leading-snug">{loc(i)}</p>
                       <p className="mt-0.5 line-clamp-2 text-[11px] text-muted-foreground">{loc(i, "description")}</p>
-                      <p className="mt-1 text-xs font-semibold tabular">{formatMoney(i.price, menu.settings.currency)}</p>
+                      <p className="mt-1 text-xs font-semibold tabular">{formatMoney(i.price, menu.settings?.currency || "USD")}</p>
                     </div>
                     <div className="relative h-16 w-16 shrink-0">
                       {i.image_url ? <img src={imgUrl(i.image_url)} alt="" loading="lazy" className="h-full w-full rounded-lg object-cover" /> : <div className="h-full w-full rounded-lg bg-secondary" />}

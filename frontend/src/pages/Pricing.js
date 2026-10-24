@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n";
 
 export default function Pricing() {
   const { tr, loc } = useI18n();
-  const plans = usePlans();
+  const plans = usePlans() || [];
   const rows = plans.length ? planFeatures(plans[0], tr).map((_, i) => i) : [];
   return (
     <div className="bg-background">
@@ -20,19 +20,25 @@ export default function Pricing() {
               <thead>
                 <tr className="border-b text-left">
                   <th className="p-4 font-display">{tr("Compare plans", "ប្រៀបធៀបគម្រោង")}</th>
-                  {plans.map((p) => <th key={p.key} className="p-4 font-display">{loc(p)}</th>)}
+                  {(plans || []).map((p) => <th key={p.key} className="p-4 font-display">{loc(p)}</th>)}
                 </tr>
               </thead>
               <tbody>
-                {rows.map((i) => (
-                  <tr key={i} className="border-b last:border-0">
-                    <td className="p-4 text-muted-foreground">{planFeatures(plans[2] || plans[0], tr)[i][1].replace(/^\d+\s/, "")}</td>
-                    {plans.map((p) => {
-                      const [on, label] = planFeatures(p, tr)[i];
-                      return <td key={p.key} className="p-4">{on ? <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />{label}</span> : <Minus className="h-4 w-4 text-muted-foreground" />}</td>;
-                    })}
-                  </tr>
-                ))}
+                {rows.map((i) => {
+                  const referencePlan = plans[2] || plans[0];
+                  const refFeatures = planFeatures(referencePlan, tr);
+                  const featureLabel = refFeatures[i]?.[1]?.replace(/^\d+\s/, "") || "";
+                  return (
+                    <tr key={i} className="border-b last:border-0">
+                      <td className="p-4 text-muted-foreground">{featureLabel}</td>
+                      {(plans || []).map((p) => {
+                        const feat = planFeatures(p, tr)[i] || [false, ""];
+                        const [on, label] = feat;
+                        return <td key={p.key} className="p-4">{on ? <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-primary" />{label}</span> : <Minus className="h-4 w-4 text-muted-foreground" />}</td>;
+                      })}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

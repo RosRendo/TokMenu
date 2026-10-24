@@ -1,15 +1,23 @@
 import axios from "axios";
 
-export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "";
 
-export const api = axios.create({ baseURL: `${BACKEND_URL}/api`, withCredentials: true, timeout: 20000 });
+export const api = axios.create({ baseURL: BACKEND_URL ? `${BACKEND_URL}/api` : "/api", withCredentials: true, timeout: 20000 });
 
 const NO_REFRESH = ["/auth/login", "/auth/register", "/auth/refresh", "/auth/logout", "/auth/forgot-password",
   "/auth/reset-password", "/auth/invites"];
 let refreshing = null;
 
 api.interceptors.response.use(
-  (res) => res,
+  (res) => {
+    // Reject HTML responses from static SPA rewrites on API endpoints
+    if (typeof res?.data === "string" && (res.data.trim().startsWith("<!DOCTYPE") || res.data.trim().startsWith("<html"))) {
+      const err = new Error("API returned HTML fallback instead of JSON");
+      err.response = { status: 404, data: { detail: "API endpoint not available" } };
+      return Promise.reject(err);
+    }
+    return res;
+  },
   async (error) => {
     const cfg = error.config;
     const skip = !cfg || cfg._retry || NO_REFRESH.some((p) => (cfg.url || "").startsWith(p));
@@ -43,7 +51,7 @@ export function errorMessage(err, fallback = "Something went wrong. Please try a
 
 export const imgUrl = (url) => (!url ? null : url.startsWith("/api/") ? `${BACKEND_URL}${url}` : url);
 
-export const wsUrl = (path) => `${BACKEND_URL.replace(/^http/, "ws")}/api${path}`;
+export const wsUrl = (path) => `${(BACKEND_URL || (typeof window !== "undefined" ? window.location.origin : "http://localhost:8000")).replace(/^http/, "ws")}/api${path}`;
 
 export const publicOrigin = () => window.location.origin;
 
