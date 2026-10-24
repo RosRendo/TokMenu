@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, ShoppingBag } from "lucide-react";
 import { api, imgUrl } from "@/lib/api";
+import { MOCK_DEMO_MENU } from "@/lib/mockDemoMenu";
 import { useI18n } from "@/lib/i18n";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,10 @@ export function SampleMenu() {
     api.get("/public/menu/demo").then(({ data }) => {
       setMenu(data);
       setCat(data.categories?.[0]?.id || null);
-    }).catch(() => setMenu(false));
+    }).catch(() => {
+      setMenu(MOCK_DEMO_MENU);
+      setCat(MOCK_DEMO_MENU.categories?.[0]?.id || null);
+    });
   }, []);
 
   const items = useMemo(() => (menu ? menu.items.filter((i) => i.category_id === cat) : []), [menu, cat]);

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, errorCode } from "@/lib/api";
+import { MOCK_DEMO_MENU } from "@/lib/mockDemoMenu";
 import { DAY_NAMES } from "@/lib/i18n";
 
 export function useMenu(slug) {
@@ -10,6 +11,10 @@ export function useMenu(slug) {
       setState({ loading: false, data, error: null });
       return data;
     } catch (e) {
+      if (slug === "demo") {
+        setState({ loading: false, data: MOCK_DEMO_MENU, error: null });
+        return MOCK_DEMO_MENU;
+      }
       setState({ loading: false, data: null, error: errorCode(e) || "ERROR" });
       return null;
     }
