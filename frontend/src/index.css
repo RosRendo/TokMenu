@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 60 14% 98%;
+        --foreground: 0 0% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 0 0% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 0 0% 11%;
+        --primary: 24 100% 36%;
+        --primary-foreground: 0 0% 100%;
+        --secondary: 60 8% 95%;
+        --secondary-foreground: 0 0% 11%;
+        --muted: 60 8% 95%;
+        --muted-foreground: 0 0% 34%;
+        --accent: 26 70% 95%;
+        --accent-foreground: 24 100% 28%;
+        --destructive: 0 72% 44%;
+        --destructive-foreground: 0 0% 100%;
+        --border: 45 9% 89%;
+        --input: 45 7% 84%;
+        --ring: 24 100% 36%;
+        --chart-1: 24 100% 36%;
+        --chart-2: 160 60% 32%;
+        --chart-3: 28 80% 55%;
+        --chart-4: 215 25% 40%;
+        --chart-5: 45 80% 55%;
+        --radius: 0.75rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    html {
+        -webkit-tap-highlight-color: transparent;
+    }
+    body {
+        @apply bg-background text-foreground font-sans antialiased;
+        line-height: 1.55;
+    }
+    html[lang="km"] body {
+        font-family: "Kantumruy Pro", "Noto Sans Khmer", Inter, sans-serif;
+        line-height: 1.75;
+    }
+    h1, h2, h3, h4 {
+        @apply font-display;
+        letter-spacing: -0.01em;
+    }
+    html[lang="km"] h1, html[lang="km"] h2, html[lang="km"] h3 {
+        letter-spacing: 0;
+        line-height: 1.45;
+    }
+    :focus-visible {
+        outline: 2px solid hsl(var(--ring));
+        outline-offset: 2px;
+    }
+    ::selection {
+        background: hsl(24 100% 36% / 0.18);
+    }
+}
+
+@layer utilities {
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+    .fade-up { animation: fadeUp 0.4s ease-out both; }
+    .tabular { font-variant-numeric: tabular-nums; }
+}
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulseRing {
+    0% { box-shadow: 0 0 0 0 hsl(217 91% 60% / 0.45); }
+    100% { box-shadow: 0 0 0 10px hsl(217 91% 60% / 0); }
+}
+.new-order-pulse { animation: pulseRing 1.4s ease-out 3; }
+
+@media (prefers-reduced-motion: reduce) {
+    .fade-up, .new-order-pulse { animation: none; }
+}
+
+@media print {
+    @page { size: A4; margin: 10mm; }
+    body { background: #fff !important; }
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    .print-sheet { display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 8mm; }
+    .qr-card { break-inside: avoid; page-break-inside: avoid; border: 1px dashed #999 !important; box-shadow: none !important; }
+}
+.print-only { display: none; }
+
+[data-debug-wrapper="true"] {
+    display: contents !important;
+}

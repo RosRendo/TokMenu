@@ -1,0 +1,87 @@
+{
+  "theme_preference": "light",
+  "typography": {
+    "headings": {
+      "font_family": "Kantumruy Pro, sans-serif",
+      "weights": ["400", "600", "700"],
+      "description": "Used for all headlines, providing a modern touch with native Khmer support. Include via Google Fonts."
+    },
+    "body": {
+      "font_family": "Inter, Noto Sans Khmer, sans-serif",
+      "weights": ["400", "500", "600"],
+      "description": "Clean, highly readable font for dense UI elements and longer Khmer translations."
+    }
+  },
+  "colors": {
+    "background": {
+      "primary": "#FAFAF8",
+      "secondary": "#F3F3F0",
+      "dashboard": "#FFFFFF"
+    },
+    "text": {
+      "primary": "#1C1C1C",
+      "secondary": "#525252",
+      "tertiary": "#8A8A8A"
+    },
+    "brand": {
+      "terracotta": "#D35400",
+      "terracotta_light": "#E67E22",
+      "terracotta_hover": "#B94A00"
+    },
+    "status": {
+      "new": "#3B82F6",
+      "accepted": "#8B5CF6",
+      "preparing": "#F59E0B",
+      "ready": "#10B981"
+    }
+  },
+  "visual_enhancers": {
+    "spacing": "Use generous padding (e.g., p-6 or p-8) for containers on public pages. Dashboard should be dense but readable (p-4).",
+    "borders": "Subtle 1px borders (border-gray-200) rather than heavy drop shadows.",
+    "shadows": "Very soft, ambient shadows for floating elements only (e.g., bottom cart bar, dropdowns). Dashboard cards should be flat with borders.",
+    "radii": "Consistent rounded-lg (8px) or rounded-xl (12px) across all cards, buttons, and images.",
+    "animation": "Restrained. Micro-interactions on hover (opacity/bg color shift). No decorative loaders that delay ordering."
+  },
+  "layouts": {
+    "landing_page": "Bento-style features, sticky header (must have solid/blur background, never completely transparent), generous hero spacing, interactive sample menu element.",
+    "mobile_menu": "Mobile-first, max-w-md mx-auto or full width on mobile, category tabs, vertical list of food cards, sticky bottom cart summary.",
+    "dashboard": "Plain working-tool interface. Sidebar navigation (w-64), white main content area, plain tables. No glassmorphism, no excessive gradients."
+  },
+  "components": {
+    "buttons": "Pill-shaped or rounded-lg. Primary uses Terracotta, Secondary uses Outline.",
+    "cards": "Flat, 1px border, no shadow for dashboard. Soft shadow for landing page.",
+    "inputs": "Standard shadcn/ui styles but with rounded-md and focus ring using Terracotta.",
+    "kanban_board": "Columns for order statuses with distinct colored header indicators.",
+    "dropdowns": "Must have solid backgrounds. DO NOT use complete transparent backgrounds."
+  },
+  "image_urls": {
+    "food_hero": {
+      "url": "https://images.pexels.com/photos/16266742/pexels-photo-16266742.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Close-up ramen, used for main landing page hero or sample menu item."
+    },
+    "food_burger": {
+      "url": "https://images.pexels.com/photos/17459592/pexels-photo-17459592.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Burger combo for sample menu item."
+    },
+    "qr_table": {
+      "url": "https://images.unsplash.com/photo-1600147131759-880e94a6185f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2OTV8MHwxfHNlYXJjaHwyfHxyZXN0YXVyYW50JTIwcXIlMjBjb2RlJTIwdGFibGUlMjBtZW51fGVufDB8fHx8MTc5MjY4NjM1OXww&ixlib=rb-4.1.0&q=85",
+      "description": "Context image for 'How it works' section - Scanning QR code."
+    }
+  },
+  "instructions_to_main_agent": [
+    "Ensure all React files use .js extension since this is a CRA setup without TypeScript.",
+    "Use lucide-react for all icons.",
+    "Dashboard must not feel like a consumer app; use plain flat tables, sidebars, and minimal styling for pure efficiency.",
+    "For translations or text, simulate Khmer/English mixed content where appropriate.",
+    "Add data-testid attributes to all interactive elements for robust testing."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": [
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Create depth through layered design elements with z-index hierarchy, but avoid excessive glassmorphism.",
+    "Do not center align the app container (.App { text-align: center; }).",
+    "Do not apply universal transitions (transition: all).",
+    "Use sonner for toasts.",
+    "Include data-testid on critical UI pieces.",
+    "Never use purely transparent backgrounds for overlays, sticky headers, or dropdowns."
+  ]
+}

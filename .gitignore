@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+*/node_modules/
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+backend/.env
+frontend/.env
+!*.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.venv/lib/
+venv/lib/
+!frontend/src/lib/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Testing & Caches
+.pytest_cache/
+.coverage
+htmlcov/
+.ruff_cache/
+.cache/
+
+# React / CRA / Webpack
+frontend/build/
+frontend/dist/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Emergent / temporary
+.emergent/
+.screenshots/
+test_reports/
