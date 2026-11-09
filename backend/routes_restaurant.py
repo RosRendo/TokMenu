@@ -12,6 +12,7 @@ from core import ApiError, app_base_url, audit, clean, db, new_id, now, rate_lim
 from repo import slug_taken, usage
 from services import PLANS, ordering_status, subscription_active, valid_slug, within_limit
 from routes_menu import check_image_url
+import telegram_service
 
 router = APIRouter(prefix="/api/dashboard", tags=["restaurant"])
 INVITE_TTL = timedelta(days=7)
@@ -51,6 +52,28 @@ class HoursIn(BaseModel):
     close: str = Field(pattern=TIME_RE)
 
 
+class TelegramIn(BaseModel):
+    enabled: bool = True
+    bot_token: str = Field(default="", max_length=200)
+    chat_id: str = Field(default="", max_length=100)
+
+
+class PaymentSettingsIn(BaseModel):
+    aba_enabled: bool = False
+    aba_merchant_id: str = Field(default="", max_length=100)
+    aba_api_key: str = Field(default="", max_length=200)
+    aba_base_url: str = Field(default="https://checkout-sandbox.payway.com.kh", max_length=200)
+    khqr_enabled: bool = False
+    khqr_bakong_account: str = Field(default="", max_length=100)
+    khqr_merchant_name: str = Field(default="", max_length=100)
+    khqr_merchant_city: str = Field(default="Phnom Penh", max_length=100)
+
+
+class TelegramTestIn(BaseModel):
+    bot_token: str = Field(min_length=10, max_length=200)
+    chat_id: str = Field(min_length=1, max_length=100)
+
+
 class SettingsIn(BaseModel):
     currency: Literal["USD", "KHR"]
     service_charge_bps: int = Field(ge=0, le=3000)
@@ -59,6 +82,9 @@ class SettingsIn(BaseModel):
     temporarily_closed: bool = False
     opening_hours: List[HoursIn] = Field(default_factory=list, max_length=7)
     accent_color: Optional[str] = Field(default=None, pattern=r"^#[0-9a-fA-F]{6}$")
+    default_qr_target: Optional[Literal["landing", "menu"]] = "landing"
+    telegram: Optional[TelegramIn] = None
+    payment: Optional[PaymentSettingsIn] = None
 
 
 class InviteIn(BaseModel):
@@ -124,6 +150,14 @@ async def update_settings(body: SettingsIn, ctx: Ctx = Depends(OWNER)):
         await audit("restaurant.currency_changed", actor=ctx.user, restaurant_id=ctx.rid, target_type="restaurant",
                     target_id=ctx.rid, meta={"from": current.get("currency"), "to": body.currency})
     return {"settings": settings}
+
+
+@router.post("/restaurant/telegram/test")
+async def test_telegram_alert(body: TelegramTestIn, ctx: Ctx = Depends(OWNER)):
+    res = await telegram_service.send_test_telegram(body.bot_token, body.chat_id)
+    if not res.get("ok"):
+        raise ApiError(400, "TELEGRAM_FAILED", res.get("error", "Failed to send test message"))
+    return res
 
 
 # ---------- Staff ----------

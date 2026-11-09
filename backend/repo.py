@@ -90,7 +90,9 @@ def order_public_view(order: dict, restaurant: dict) -> dict:
     return clean({
         "code": order["code"], "display_code": display_code(order["code"]),
         "daily_number": order["daily_number"], "status": order["status"],
-        "payment_status": order["payment_status"], "table_label": order.get("table_label"),
+        "payment_status": order["payment_status"], "payment_method": order.get("payment_method"),
+        "payment_qr": order.get("payment_qr"),
+        "table_label": order.get("table_label"),
         "customer_label": order.get("customer_label") or "", "currency": order["currency"],
         "items": [_public_line(line) for line in order["items"]],
         "subtotal": order["subtotal"], "service_charge": order["service_charge"], "tax": order["tax"],

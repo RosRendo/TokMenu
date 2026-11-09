@@ -88,6 +88,7 @@ export default function CartPage() {
   const table = getTable(slug);
   const [label, setLabel] = useState("");
   const [note, setNote] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState(null);
   const inFlight = useRef(false);
@@ -121,6 +122,7 @@ export default function CartPage() {
         idempotency_key: key,
         table_token: table?.token || null,
         customer_label: label.trim(),
+        payment_method: paymentMethod,
         note: note.trim(),
         items: cart.lines.map((l) => ({ item_id: l.item_id, quantity: l.quantity, selections: l.selections, note: l.note || "" })),
       });
@@ -171,6 +173,60 @@ export default function CartPage() {
               <span className="text-sm font-semibold">{tr("Note for the kitchen (optional)", "កំណត់ចំណាំសម្រាប់ផ្ទះបាយ (ស្រេចចិត្ត)")}</span>
               <Textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 300))} rows={2} className="mt-2" data-testid="cart-order-note" />
             </label>
+          </div>
+
+          <div className="mt-5 space-y-2">
+            <span className="text-sm font-semibold">{tr("Payment method", "វិធីទូទាត់ប្រាក់")}</span>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              <button
+                type="button"
+                onClick={() => setPaymentMethod("cash")}
+                className={cn(
+                  "flex items-center gap-2.5 rounded-xl border p-3 text-left text-xs font-semibold transition-all",
+                  paymentMethod === "cash" ? "border-primary bg-primary/5 text-primary shadow-sm" : "bg-card text-stone-700 hover:bg-secondary"
+                )}
+              >
+                <Wallet className="h-4 w-4 shrink-0 text-primary" />
+                <div>
+                  <p className="leading-tight">{tr("Cash", "សាច់ប្រាក់")}</p>
+                  <p className="text-[10px] font-normal text-muted-foreground">{tr("At counter/table", "នៅបញ្ជរ ឬនៅតុ")}</p>
+                </div>
+              </button>
+
+              {data.settings.payment?.aba_enabled && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("aba")}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-xl border p-3 text-left text-xs font-semibold transition-all",
+                    paymentMethod === "aba" ? "border-sky-500 bg-sky-50 text-sky-800 shadow-sm" : "bg-card text-stone-700 hover:bg-secondary"
+                  )}
+                >
+                  <span className="text-base shrink-0">💳</span>
+                  <div>
+                    <p className="leading-tight">ABA PayWay</p>
+                    <p className="text-[10px] font-normal text-muted-foreground">{tr("Scan / ABA app", "ស្កេន ឬកម្មវិធី ABA")}</p>
+                  </div>
+                </button>
+              )}
+
+              {data.settings.payment?.khqr_enabled && (
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod("khqr")}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-xl border p-3 text-left text-xs font-semibold transition-all",
+                    paymentMethod === "khqr" ? "border-red-500 bg-red-50 text-red-800 shadow-sm" : "bg-card text-stone-700 hover:bg-secondary"
+                  )}
+                >
+                  <span className="text-base shrink-0">🏦</span>
+                  <div>
+                    <p className="leading-tight">Bakong KHQR</p>
+                    <p className="text-[10px] font-normal text-muted-foreground">{tr("Any bank app", "គ្រប់ធនាគារទាំងអស់")}</p>
+                  </div>
+                </button>
+              )}
+            </div>
           </div>
 
           <dl className="mt-6 space-y-2 rounded-xl bg-secondary p-4 text-sm" data-testid="cart-totals">

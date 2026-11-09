@@ -40,6 +40,7 @@ class ErrorBoundary extends Component {
 }
 
 const Landing = lazy(() => import("@/pages/Landing"));
+const RestaurantLanding = lazy(() => import("@/pages/RestaurantLanding"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const MenuPage = lazy(() => import("@/pages/menu/MenuPage"));
@@ -79,6 +80,7 @@ function App() {
               <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/pricing" element={<Pricing />} />
+              <Route path="/r/:slug" element={<RestaurantLanding />} />
               <Route path="/menu/:slug" element={<MenuPage />} />
               <Route path="/menu/:slug/cart" element={<CartPage />} />
               <Route path="/menu/:slug/order/:code" element={<OrderStatusPage />} />

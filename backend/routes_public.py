@@ -1,12 +1,15 @@
+import asyncio
 import re
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from pymongo.errors import DuplicateKeyError
 
+import payment_service
 import storage
+import telegram_service
 from auth import user_from_token
 from core import ApiError, clean, client_ip, db, logger, new_id, now, rate_limit, request_host
 from realtime import hub
@@ -61,9 +64,16 @@ async def public_menu(slug: str):
         {"restaurant_id": restaurant["id"], "archived": False, "category_id": {"$in": list(order)}},
         {"_id": 0, "restaurant_id": 0, "archived": 0, "created_at": 0, "updated_at": 0}).to_list(2000)
     items.sort(key=lambda i: (order[i["category_id"]], i.get("sort_order", 0)))
+    p_conf = payment_service.get_payment_config(restaurant)
+    settings_view = {k: settings.get(k) for k in PUBLIC_SETTINGS_FIELDS}
+    settings_view["payment"] = {
+        "aba_enabled": p_conf["aba_enabled"],
+        "khqr_enabled": p_conf["khqr_enabled"],
+        "default_qr_target": settings.get("default_qr_target", "landing"),
+    }
     return clean({
         "suspended": False, "canonical_slug": restaurant["slug"], "restaurant": info,
-        "settings": {k: settings.get(k) for k in PUBLIC_SETTINGS_FIELDS},
+        "settings": settings_view,
         "status": ordering_status(restaurant, subscription, now()),
         "categories": categories, "items": items,
     })
@@ -94,8 +104,13 @@ class OrderIn(BaseModel):
     idempotency_key: str = Field(pattern=r"^[A-Za-z0-9-]{16,64}$")
     table_token: Optional[str] = Field(default=None, max_length=64)
     customer_label: str = Field(default="", max_length=40)
+    payment_method: Optional[Literal["cash", "aba", "khqr"]] = "cash"
     note: str = Field(default="", max_length=300)
     items: List[LineIn] = Field(min_length=1, max_length=50)
+
+
+class PaymentInitIn(BaseModel):
+    payment_method: Literal["aba", "khqr", "cash"]
 
 
 @router.post("/public/menu/{slug}/orders")
@@ -134,10 +149,11 @@ async def create_order(slug: str, body: OrderIn, request: Request):
 
     ts = now()
     business_date = local_date(ts, settings.get("timezone"))
+    pay_method = body.payment_method or "cash"
     order = {
         "id": new_id(), "restaurant_id": rid, "code": None,
         "daily_number": await next_daily_number(rid, business_date), "business_date": business_date,
-        "status": "PENDING", "payment_status": "unpaid", "payment_method": None, "paid_at": None,
+        "status": "PENDING", "payment_status": "unpaid", "payment_method": pay_method, "paid_at": None,
         "table_id": table["id"] if table else None, "table_label": table["label"] if table else None,
         "customer_label": body.customer_label.strip(), "currency": settings["currency"],
         "items": priced["lines"], "subtotal": priced["subtotal"], "service_charge": priced["service_charge"],
@@ -146,9 +162,18 @@ async def create_order(slug: str, body: OrderIn, request: Request):
         "note": body.note.strip(), "idempotency_key": body.idempotency_key, "reject_reason": None,
         "status_history": [{"status": "PENDING", "at": ts, "by": None}],
         "is_demo": bool(restaurant.get("is_demo")), "created_at": ts, "updated_at": ts,
+        "payment_qr": None,
     }
     for _ in range(5):
-        order["code"] = generate_order_code()
+        code = generate_order_code()
+        order["code"] = code
+        if pay_method in ("aba", "khqr"):
+            amt = priced["total"] / 100.0 if settings["currency"] == "USD" else priced["total"]
+            t_label = (table["label"] if table else body.customer_label.strip()) or "Counter"
+            if pay_method == "aba":
+                order["payment_qr"] = payment_service.generate_aba_qr(amt, code, settings["currency"], t_label, restaurant)
+            else:
+                order["payment_qr"] = payment_service.generate_khqr_payload(amt, code, settings["currency"], t_label, restaurant)
         order.pop("_id", None)
         try:
             await db.orders.insert_one(order)
@@ -162,6 +187,7 @@ async def create_order(slug: str, body: OrderIn, request: Request):
         logger.error("Could not allocate order code for restaurant %s", rid)
         raise ApiError(500, "SERVER_ERROR", "Something went wrong. Please try again.")
     await broadcast_order(order, restaurant, "order.created")
+    asyncio.create_task(telegram_service.send_telegram_order_notification(order, restaurant))
     return {"order": order_public_view(order, restaurant), "duplicate": False}
 
 
@@ -174,6 +200,73 @@ async def public_order(code: str, request: Request):
         raise ApiError(404, "ORDER_NOT_FOUND", "We couldn't find this order.")
     restaurant = await db.restaurants.find_one({"id": order["restaurant_id"]}, {"_id": 0})
     return order_public_view(order, restaurant or {})
+
+
+@router.post("/public/orders/{code}/pay")
+async def init_order_payment(code: str, body: PaymentInitIn):
+    normalized = normalize_order_code(code)
+    order = await db.orders.find_one({"code": normalized}) if normalized else None
+    if not order:
+        raise ApiError(404, "ORDER_NOT_FOUND", "We couldn't find this order.")
+    restaurant = await db.restaurants.find_one({"id": order["restaurant_id"]}, {"_id": 0})
+    pay_method = body.payment_method
+    payment_qr = None
+    if pay_method in ("aba", "khqr"):
+        amt = order["total"] / 100.0 if order["currency"] == "USD" else order["total"]
+        t_label = order.get("table_label") or order.get("customer_label") or "Counter"
+        if pay_method == "aba":
+            payment_qr = payment_service.generate_aba_qr(amt, normalized, order["currency"], t_label, restaurant)
+        else:
+            payment_qr = payment_service.generate_khqr_payload(amt, normalized, order["currency"], t_label, restaurant)
+    await db.orders.update_one({"code": normalized}, {"$set": {"payment_method": pay_method, "payment_qr": payment_qr, "updated_at": now()}})
+    order["payment_method"] = pay_method
+    order["payment_qr"] = payment_qr
+    await broadcast_order(order, restaurant, "order.updated")
+    return {"order": order_public_view(order, restaurant), "payment_qr": payment_qr}
+
+
+@router.post("/public/payment/aba/callback")
+async def aba_payment_callback(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    tran_id = str(body.get("tran_id") or "")
+    status = str(body.get("status") or "")
+    code = tran_id.replace("TM-", "").strip().upper()
+    if not code:
+        return {"success": False, "message": "Missing tran_id"}
+    
+    order = await db.orders.find_one({"code": code})
+    if not order:
+        logger.warning("ABA callback received for non-existent order %s", code)
+        return {"success": False, "message": "Order not found"}
+        
+    restaurant = await db.restaurants.find_one({"id": order["restaurant_id"]}, {"_id": 0})
+    if status in ("0", "success", "approved", "completed"):
+        ts = now()
+        await db.orders.update_one({"code": code}, {"$set": {"payment_status": "paid", "paid_at": ts, "updated_at": ts}})
+        order["payment_status"] = "paid"
+        order["paid_at"] = ts
+        await broadcast_order(order, restaurant, "order.updated")
+        
+        # Send Telegram confirmation if configured
+        tg_conf = telegram_service.get_telegram_config(restaurant)
+        if tg_conf[2]:
+            amt = body.get("amount") or (order["total"] / 100.0 if order["currency"] == "USD" else order["total"])
+            msg = (
+                f"✅ <b>PAYMENT CONFIRMED — {restaurant.get('name', 'Tok Menu')}</b>\n\n"
+                f"🆔 <b>Order Code:</b> <code>{code}</code>\n"
+                f"💰 <b>Amount:</b> ${amt}\n"
+                f"💳 <b>Method:</b> ABA PayWay / KHQR\n"
+                f"🕒 <b>Time:</b> {ts.strftime('%d/%m/%Y %I:%M %p')}"
+            )
+            url = f"https://api.telegram.org/bot{tg_conf[0]}/sendMessage"
+            try:
+                requests.post(url, json={"chat_id": tg_conf[1], "text": msg, "parse_mode": "HTML"}, timeout=5)
+            except Exception:
+                pass
+    return {"success": True}
 
 
 @router.get("/files/{path:path}")

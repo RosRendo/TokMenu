@@ -20,6 +20,7 @@ export function OrderingSettings({ Row }) {
   const [form, setForm] = useState(() => ({
     currency: s.currency, default_language: s.default_language || "en", temporarily_closed: !!s.temporarily_closed,
     service: bpsToPercent(s.service_charge_bps), tax: bpsToPercent(s.tax_bps), accent_color: s.accent_color || "#B94A00",
+    default_qr_target: s.default_qr_target || "landing",
     alwaysOpen: !(s.opening_hours || []).length, hours: fullWeek(s.opening_hours || []),
   }));
   const [busy, setBusy] = useState(false);
@@ -34,6 +35,7 @@ export function OrderingSettings({ Row }) {
       await api.put("/dashboard/restaurant/settings", {
         currency: form.currency, default_language: form.default_language, temporarily_closed: form.temporarily_closed,
         service_charge_bps: percentToBps(service), tax_bps: percentToBps(tax),
+        default_qr_target: form.default_qr_target,
         opening_hours: form.alwaysOpen ? [] : form.hours, accent_color: plan.custom_branding ? form.accent_color : null,
       });
       toast.success(tr("Settings saved", "បានរក្សាទុក"));
@@ -92,6 +94,15 @@ export function OrderingSettings({ Row }) {
       </Row>
       <Row label={tr("Brand colour", "ពណ៌ម៉ាក")} hint={plan.custom_branding ? null : tr("Available on Pro.", "មាននៅ Pro។")}>
         <input type="color" value={form.accent_color} disabled={!plan.custom_branding} onChange={(e) => setForm((f) => ({ ...f, accent_color: e.target.value }))} className="h-9 w-16 cursor-pointer rounded border disabled:cursor-not-allowed disabled:opacity-40" data-testid="settings-accent-color" />
+      </Row>
+      <Row label={tr("QR scan destination", "ទិសដៅស្កេន QR")} hint={tr("Where guests land when scanning table QR codes.", "ទំព័រដែលភ្ញៀវឃើញពេលស្កេន QR")}>
+        <Select value={form.default_qr_target} onValueChange={(v) => setForm((f) => ({ ...f, default_qr_target: v }))}>
+          <SelectTrigger className="w-64" data-testid="settings-qr-target"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="landing">{tr("QR Landing Hub (/r/:slug)", "ទំព័រស្វាគមន៍ QR (/r/:slug)")}</SelectItem>
+            <SelectItem value="menu">{tr("Direct to Menu (/menu/:slug)", "ទៅកាន់ម៉ឺនុយផ្ទាល់ (/menu/:slug)")}</SelectItem>
+          </SelectContent>
+        </Select>
       </Row>
       <div className="flex justify-end">
         {currencyChanged ? (

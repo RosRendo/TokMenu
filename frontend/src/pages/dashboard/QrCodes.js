@@ -7,7 +7,7 @@ import { EmptyState, PageHeader } from "@/components/Blocks";
 import { PageLoader } from "@/components/Loading";
 import { api, publicOrigin } from "@/lib/api";
 import { useI18n } from "@/lib/i18n";
-import { tableMenuUrl } from "@/lib/qr";
+import { tableMenuUrl, tableTargetUrl } from "@/lib/qr";
 import { useDash } from "./context";
 import { QrImage } from "./Tables";
 
@@ -32,6 +32,7 @@ export default function QrCodes() {
   const [tables, setTables] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [includeMenu, setIncludeMenu] = useState(true);
+  const [qrTarget, setQrTarget] = useState(() => restaurant.settings?.default_qr_target || "landing");
   const origin = publicOrigin();
 
   useEffect(() => {
@@ -57,6 +58,27 @@ export default function QrCodes() {
           description={tr("Cards print 4 per A4 page. Cut along the dashed lines and place one on each table.", "បោះពុម្ព ៤ កាតក្នុងមួយទំព័រ A4។ កាត់តាមបន្ទាត់ ហើយដាក់លើតុនីមួយៗ។")}
           actions={<Button onClick={() => window.print()} disabled={!chosen.length && !includeMenu} data-testid="qr-print-button"><Printer />{tr("Print", "បោះពុម្ព")}</Button>}
         />
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3 text-sm">
+          <span className="font-semibold text-muted-foreground">{tr("QR Code Destination:", "ទិសដៅកូដ QR៖")}</span>
+          <button
+            type="button"
+            onClick={() => setQrTarget("landing")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              qrTarget === "landing" ? "bg-primary text-white" : "border bg-background hover:bg-secondary"
+            }`}
+          >
+            {tr("🌟 Landing Hub (/r/:slug)", "🌟 ទំព័រស្វាគមន៍ QR")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setQrTarget("menu")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+              qrTarget === "menu" ? "bg-primary text-white" : "border bg-background hover:bg-secondary"
+            }`}
+          >
+            {tr("📖 Direct to Menu (/menu/:slug)", "📖 ទៅកាន់ម៉ឺនុយផ្ទាល់")}
+          </button>
+        </div>
         {tables.length === 0 ? (
           <EmptyState title={tr("Create tables first", "បង្កើតតុជាមុនសិន")} testId="qr-no-tables" action={<Button asChild><Link to="/dashboard/tables">{tr("Go to tables", "ទៅកាន់តុ")}</Link></Button>}>
             {tr("You can still print the restaurant-wide menu QR below.", "អ្នកនៅតែអាចបោះពុម្ពកូដ QR ម៉ឺនុយខាងក្រោម។")}
@@ -71,8 +93,8 @@ export default function QrCodes() {
         )}
       </div>
       <div className="print-sheet grid gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="qr-sheet">
-        {includeMenu && <QrCard restaurant={restaurant} label={tr("Menu", "ម៉ឺនុយ")} url={tableMenuUrl(origin, restaurant.slug)} testId="qr-card-menu" />}
-        {chosen.map((t) => <QrCard key={t.id} restaurant={restaurant} label={t.label} url={tableMenuUrl(origin, restaurant.slug, t.token)} testId={`qr-card-${t.id}`} />)}
+        {includeMenu && <QrCard restaurant={restaurant} label={tr("Menu", "ម៉ឺនុយ")} url={tableTargetUrl(origin, restaurant.slug, null, qrTarget)} testId="qr-card-menu" />}
+        {chosen.map((t) => <QrCard key={t.id} restaurant={restaurant} label={t.label} url={tableTargetUrl(origin, restaurant.slug, t.token, qrTarget)} testId={`qr-card-${t.id}`} />)}
       </div>
     </div>
   );

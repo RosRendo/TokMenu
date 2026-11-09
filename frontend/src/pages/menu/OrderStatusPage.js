@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { Check, Loader2, MapPin, Wallet, Wifi, WifiOff, XCircle } from "lucide-react";
+import { Check, ExternalLink, Loader2, MapPin, QrCode, Wallet, Wifi, WifiOff, XCircle } from "lucide-react";
 import { LangSwitch } from "@/components/LangSwitch";
 import { api, errorCode } from "@/lib/api";
 import { rememberOrder } from "@/lib/cart";
@@ -8,6 +8,7 @@ import { formatTime, useI18n } from "@/lib/i18n";
 import { useInterval, useLiveSocket } from "@/lib/live";
 import { formatMoney } from "@/lib/money";
 import { cn } from "@/lib/utils";
+import { QrImage } from "../dashboard/Tables";
 import { MenuMessage, MenuShell } from "./MenuPage";
 
 const STEPS = [
@@ -118,10 +119,56 @@ export default function OrderStatusPage() {
           ) : <Timeline order={order} />}
         </div>
 
-        <div className={cn("mt-4 flex items-center gap-2 rounded-xl p-3 text-sm", order.payment_status === "paid" ? "bg-emerald-50 text-emerald-800" : "bg-secondary")} data-testid="order-payment-status">
-          <Wallet className="h-4 w-4 shrink-0" />
-          {order.payment_status === "paid" ? tr("Payment received. Thank you!", "បានទទួលការបង់ប្រាក់។ អរគុណ!") : tr("Pay at the counter or at your table.", "សូមបង់ប្រាក់នៅបញ្ជរ ឬនៅតុ។")}
-        </div>
+        {order.payment_status === "paid" ? (
+          <div className="mt-4 flex items-center gap-2 rounded-xl p-3 text-sm bg-emerald-50 text-emerald-800 border border-emerald-200" data-testid="order-payment-status">
+            <Check className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span className="font-semibold">{tr("Payment received. Thank you!", "បានទទួលការបង់ប្រាក់។ អរគុណ!")}</span>
+          </div>
+        ) : order.payment_qr?.qr_code || order.payment_qr?.qr_string ? (
+          <div className="mt-5 rounded-2xl border-2 border-primary/20 bg-card p-5 text-center shadow-sm">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+              <QrCode className="h-3.5 w-3.5" />
+              <span>{order.payment_method === "aba" ? "ABA PayWay" : "Bakong KHQR"}</span>
+            </div>
+            <h3 className="mt-2 font-display text-lg font-bold">
+              {tr("Scan with any banking app to pay", "ស្កេនដើម្បីទូទាត់ប្រាក់")}
+            </h3>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {tr("Supports Bakong, ABA Mobile, and all Cambodian banks", "គាំទ្រកម្មវិធី Bakong, ABA និងគ្រប់ធនាគារ")}
+            </p>
+
+            <div className="mt-4 mx-auto grid place-items-center rounded-2xl border bg-white p-4 w-fit shadow-inner">
+              <QrImage
+                text={order.payment_qr.qr_code || order.payment_qr.qr_string}
+                size={280}
+                className="h-52 w-52 object-contain"
+                testId="order-payment-qr"
+              />
+              <p className="mt-2 font-mono text-base font-bold text-primary">
+                {formatMoney(order.total, order.currency)}
+              </p>
+            </div>
+
+            {order.payment_qr.deeplink && (
+              <a
+                href={order.payment_qr.deeplink}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white shadow transition-all hover:bg-sky-700 active:scale-95"
+              >
+                <span>{tr("Open in ABA Mobile", "បើកក្នុងកម្មវិធី ABA")}</span>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            )}
+
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              {tr("This page updates automatically once payment is received.", "ទំព័រនេះនឹងធ្វើបច្ចុប្បន្នភាពដោយស្វ័យប្រវត្តិនៅពេលទទួលបានប្រាក់។")}
+            </p>
+          </div>
+        ) : (
+          <div className="mt-4 flex items-center gap-2 rounded-xl p-3 text-sm bg-secondary" data-testid="order-payment-status">
+            <Wallet className="h-4 w-4 shrink-0" />
+            {tr("Pay at the counter or at your table.", "សូមបង់ប្រាក់នៅបញ្ជរ ឬនៅតុ។")}
+          </div>
+        )}
 
         <h2 className="mt-8 font-display text-base font-semibold">{tr("Items", "មុខម្ហូប")}</h2>
         <ul className="mt-2 divide-y" data-testid="order-items">
