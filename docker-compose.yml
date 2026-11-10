@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: tokmenu_mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: tokmenu
+    volumes:
+      - tokmenu_mongo_data:/data/db
+    networks:
+      - tokmenu_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tokmenu_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      MONGO_URL: mongodb://mongodb:27017
+      DB_NAME: tokmenu
+      CORS_ORIGINS: "http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000"
+      JWT_SECRET: dev_jwt_secret_tokmenu_2026
+    depends_on:
+      - mongodb
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    networks:
+      - tokmenu_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tokmenu_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - tokmenu_network
+
+volumes:
+  tokmenu_mongo_data:
+    driver: local
+
+networks:
+  tokmenu_network:
+    driver: bridge
